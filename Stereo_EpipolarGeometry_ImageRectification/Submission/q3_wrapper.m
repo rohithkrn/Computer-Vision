@@ -1,0 +1,86 @@
+%% E from F
+%% Choose this for 15 and 17 jpg
+K1 = [1692.679116 0.000 536.000000;
+      0.000 1692.679116 356.000000;
+        0.000 0.000 1.000;];
+
+K2 = [1721.811833 0.000 536.000000;
+      0.000 1721.811833 356.000000;
+      0.000 0.000 1.000];
+  %% Choose this for sport.png
+    load('Sport_cam.mat');
+  [K1,R1,t1] = art(pml);
+  [K2,R2,t2] = art(pmr);
+  
+  %%
+E = K2'*F_RS*K1;
+% [U,D,V] = svd(E);
+% D = [1 0 0;0 1 0; 0 0 0];
+% E = U*D*V';
+[R,t] = compute_RT_fromEssential(E);
+
+
+%%
+for i = 1:4
+  PM2{i} = K2*[R{i} t{i}];  
+    
+end
+[P,ind] = selectCorrectProjectionMatrix(PM2,P1,P2);
+R = P(:,1:3);
+C = P2(:,4);
+%% Trinagulate Points
+
+%select n_tri points to triangulate from P1 and P2
+n_tri = 200;
+P1_tri = P1(1:n_tri,:);
+P2_tri = P2(1:n_tri,:);
+points_triangulated_1 = zeros(3,n_tri);
+PM1 = K1*[eye(3) zeros(3,1)];
+for j =  1:4
+
+for i = 1:n_tri
+    points_triangulated_1(:,i) = triangulate_2(PM1, PM2{j}, P1_tri(i,:), P2_tri(i,:));
+end
+X_cell{j} = points_triangulated_1;
+
+end
+% plot3(points_triangulated_1(1,:), points_triangulated_1(2,:), points_triangulated_1(3,:), 'b o');
+% % legend('true points','triangulated points');
+% grid on;
+% % axis equal;
+% title('Triangulation - Method 1');
+
+%%
+corr_ind = ind;
+for ii = 1:4
+    if ii == corr_ind
+figure,
+plotCamera('location',C_cell{ii},'Orientation',R_cell{ii},'Color',[1,0,0],'Size',0.3); grid on; zlabel thisIsZ;hold on
+plotCamera('location',[0 0 0],'Orientation',eye(3),'Color',[0,1,0],'Size',0.3); hold on; 
+plot3(X_cell{ii}(1,:), X_cell{ii}(2,:), X_cell{ii}(3,:), 'b.');axis 'manual';zlim([-1,3]);title 'Correct CameraPose'
+    else
+    
+figure,
+plotCamera('location',C_cell{ii},'Orientation',R_cell{ii},'Color',[1,0,0],'Size',0.3); grid on; zlabel thisIsZ;hold on
+plotCamera('location',[0 0 0],'Orientation',eye(3),'Color',[0,1,0],'Size',0.3); hold on; 
+plot3(X_cell{ii}(1,:), X_cell{ii}(2,:), X_cell{ii}(3,:), 'b.');axis 'manual';zlim([-1,3]);title 'InCorrect CameraPose';
+
+    end
+end
+%%
+% 
+% DisplayCameraPlane(C,R,1);
+% hold on
+plot3(X(1,:), X(2,:), X(3,:), 'b.');
+% axis equal
+% Trans = -R*C;
+% plot3(X(1,:), X(2,:), X(3,:), 'b o'); zlabel 'so'
+% % legend('true points','triangulated points');
+% grid on;
+
+% figure, plotCamera('location',Trans,'Orientation', R);
+
+
+%% 
+% 
+% figure,stem(X(3,:))
